@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Termômetro da Voz · Presença</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F2EDE4;min-height:100vh;display:flex;flex-direction:column}
+.header{background:#0D0D0D;padding:14px 18px;flex-shrink:0}
+.header-top{display:flex;justify-content:space-between;align-items:center}
+.logo{font-size:14px;font-weight:700;color:#fff;letter-spacing:.5px}
+.logo span{color:#EA6000}
+.session-badge{font-size:10px;background:#1A1A1A;color:#FF8F44;padding:3px 9px;border-radius:20px;font-weight:500}
+.progress-dots{display:flex;gap:3px;margin-top:10px}
+.dot{flex:1;height:3px;border-radius:2px;background:#2A2A2A;transition:background .3s}
+.dot.done{background:#EA6000}
+.dot.active{background:#FD751D}
+
+.screen{display:none;flex-direction:column;flex:1;padding:18px}
+.screen.show{display:flex}
+
+/* ENTRADA */
+.entry-wrap{flex:1;display:flex;flex-direction:column;justify-content:center;gap:16px}
+.entry-logo{text-align:center;margin-bottom:8px}
+.entry-logo h1{font-size:26px;font-weight:800;color:#0D0D0D}
+.entry-logo h1 span{color:#EA6000}
+.entry-logo p{font-size:13px;color:#888;margin-top:4px}
+.entry-card{background:#fff;border-radius:16px;padding:18px;border:.5px solid #E8E3DA}
+.entry-card h2{font-size:15px;font-weight:600;color:#0D0D0D;margin-bottom:4px}
+.entry-card p{font-size:12px;color:#888;line-height:1.6;margin-bottom:12px}
+.entry-card input{width:100%;padding:12px 14px;border:1.5px solid #E8E3DA;border-radius:10px;font-size:16px;text-transform:uppercase;letter-spacing:2px;font-weight:600;text-align:center;background:#FDF9F0;outline:none}
+.entry-card input:focus{border-color:#EA6000}
+.entry-card select{width:100%;padding:12px 14px;border:1.5px solid #E8E3DA;border-radius:10px;font-size:15px;background:#FDF9F0;color:#0D0D0D;outline:none;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;margin-bottom:10px}
+.entry-card select:focus{border-color:#EA6000}
+.entry-card .field-label{font-size:11px;font-weight:600;color:#888;margin-bottom:5px;display:block;text-transform:uppercase;letter-spacing:.5px}
+.entry-card input.name-input{text-transform:none;letter-spacing:0;font-size:15px;font-weight:400;margin-bottom:10px}
+.btn-main{width:100%;padding:16px;background:#EA6000;color:#fff;border:none;border-radius:14px;font-size:16px;font-weight:700;cursor:pointer;transition:background .15s}
+.btn-main:active{background:#c95200}
+.btn-main:disabled{background:#ccc;cursor:not-allowed}
+
+/* QUESTÃO */
+.q-wrap{flex:1;display:flex;flex-direction:column;gap:14px}
+.q-meta{font-size:11px;color:#888;font-weight:500;letter-spacing:.5px;text-transform:uppercase}
+.q-text{font-size:16px;font-weight:600;color:#0D0D0D;line-height:1.5}
+.options{display:flex;flex-direction:column;gap:8px;flex:1}
+.opt{display:flex;align-items:center;gap:12px;padding:14px 16px;background:#fff;border-radius:14px;border:2px solid transparent;cursor:pointer;transition:all .15s}
+.opt:active{transform:scale(0.98)}
+.opt.sel{border-color:#EA6000;background:#FFF5EE}
+.opt-num{width:28px;height:28px;border-radius:50%;background:#F2EDE4;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#888;flex-shrink:0;transition:all .15s}
+.opt.sel .opt-num{background:#EA6000;color:#fff}
+.opt-body{flex:1}
+.opt-label{font-size:14px;font-weight:600;color:#0D0D0D;margin-bottom:1px}
+.opt-hint{font-size:11px;color:#aaa;line-height:1.4}
+.opt.sel .opt-label{color:#EA6000}
+.opt.sel .opt-hint{color:#FD751D}
+
+/* LOADING */
+.loading-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px}
+.spinner{width:40px;height:40px;border:3px solid #E8E3DA;border-top-color:#EA6000;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-wrap p{font-size:13px;color:#888}
+
+/* OBRIGADO */
+.done-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:20px}
+.done-circle{width:72px;height:72px;background:#EA6000;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto}
+.done-circle svg{color:#fff}
+.done-wrap h2{font-size:22px;font-weight:700;color:#0D0D0D}
+.done-wrap p{font-size:14px;color:#888;line-height:1.6}
+.done-tag{background:#EA6000;color:#fff;font-size:12px;font-weight:600;padding:6px 16px;border-radius:20px;display:inline-block}
+
+/* ERRO */
+.error-box{background:#FEE;border:1.5px solid #F9A;border-radius:12px;padding:12px 14px;font-size:12px;color:#A32D2D;line-height:1.6;display:none}
+</style>
+</head>
+<body>
+
+<div class="header" id="main-header" style="display:none">
+  <div class="header-top">
+    <div class="logo">PRESENÇA<span>.</span></div>
+    <div class="session-badge" id="sess-badge">—</div>
+  </div>
+  <div class="progress-dots" id="dots"></div>
+</div>
+
+<!-- TELA: ENTRADA -->
+<div class="screen show" id="scr-entry" style="background:#F2EDE4">
+  <div class="entry-wrap">
+    <div class="entry-logo">
+      <h1>Termômetro<br><span>da Voz</span></h1>
+      <p>Workshop · Comunicação Assertiva · Presença</p>
+    </div>
+    <div class="entry-card">
+      <h2>Identificação</h2>
+      <p>Preencha seus dados antes de começar.</p>
+      <label class="field-label">Seu nome completo</label>
+      <input type="text" class="name-input" id="name-input" placeholder="Digite seu nome completo" autocomplete="name">
+      <label class="field-label">Seu gestor direto</label>
+      <select id="gestor-input">
+        <option value="">Selecione seu gestor...</option>
+        <option value="Felipe Guimarães">Felipe Guimarães</option>
+        <option value="Ana Flores">Ana Flores</option>
+        <option value="Vitória Letícia">Vitória Letícia</option>
+        <option value="Aline Freitas">Aline Freitas</option>
+        <option value="Marcelo Oliveira">Marcelo Oliveira</option>
+      </select>
+      <label class="field-label">Código da sessão</label>
+      <input type="text" id="code-input" placeholder="EX: PRESENCA01" maxlength="12"
+             oninput="this.value=this.value.toUpperCase()" onkeyup="if(event.key==='Enter')enterSession()">
+    </div>
+    <div class="error-box" id="err-box">Sessão não encontrada. Verifique o código com o facilitador.</div>
+    <button class="btn-main" id="btn-enter" onclick="enterSession()">Entrar na sessão →</button>
+  </div>
+</div>
+
+<!-- TELA: LOADING -->
+<div class="screen" id="scr-loading" style="background:#F2EDE4">
+  <div class="loading-wrap">
+    <div class="spinner"></div>
+    <p id="loading-msg">Entrando na sessão...</p>
+  </div>
+</div>
+
+<!-- TELA: QUESTÃO -->
+<div class="screen" id="scr-q" style="background:#F2EDE4">
+  <div class="q-wrap">
+    <div class="q-meta" id="q-meta">Pergunta 1 de 11</div>
+    <div class="q-text" id="q-text"></div>
+    <div class="options" id="options"></div>
+    <button class="btn-main" id="btn-next" onclick="submitAnswer()" disabled>Responder →</button>
+  </div>
+</div>
+
+<!-- TELA: OBRIGADO -->
+<div class="screen" id="scr-done" style="background:#F2EDE4">
+  <div class="done-wrap">
+    <div class="done-circle">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <h2>Obrigado pela sua participação!</h2>
+    <p>Suas respostas contribuem diretamente para um ambiente de trabalho melhor para todos.</p>
+    <span class="done-tag">Respostas enviadas ✓</span>
+    <p style="font-size:11px;color:#bbb;margin-top:8px">Grupo Presença · Comunicação Assertiva</p>
+  </div>
+</div>
+
+<script>
+const FB = "https://termometro-da-voz-promotora-default-rtdb.firebaseio.com";
+
+const QUESTIONS = [
+  {block:"Bloco 1 · Comunicação no time", text:"No dia a dia, me sinto à vontade para me comunicar com as pessoas ao meu redor no trabalho."},
+  {block:"Bloco 1 · Comunicação no time", text:"As informações importantes chegam até mim de forma clara e no momento certo."},
+  {block:"Bloco 1 · Comunicação no time", text:"Quando cometo um erro, recebo um retorno de forma respeitosa."},
+  {block:"Bloco 2 · Relação com a liderança", text:"Minha liderança se comunica comigo de forma clara e objetiva."},
+  {block:"Bloco 2 · Relação com a liderança", text:"Quando estou com dúvidas ou dificuldades, me sinto confortável para buscar ajuda com meu supervisor."},
+  {block:"Bloco 2 · Relação com a liderança", text:"Minha liderança mantém a calma e o respeito mesmo em situações de pressão ou erro."},
+  {block:"Bloco 2 · Relação com a liderança", text:"Sinto que posso dar uma opinião ou sugestão sem medo de receber uma resposta agressiva ou impaciente."},
+  {block:"Bloco 2 · Relação com a liderança", text:"A forma como recebo feedbacks da minha liderança me motiva a melhorar."},
+  {block:"Bloco 2 · Relação com a liderança", text:"Me sinto tratado com respeito e dignidade pela minha liderança direta."},
+  {block:"Bloco 3 · Autopercepção", text:"Acredito que me comunico de forma assertiva e respeitosa com minha equipe e liderança."},
+  {block:"Bloco 3 · Autopercepção", text:"Estou aberto a receber feedbacks sobre minha forma de me comunicar."},
+];
+
+const SCALE = [
+  {val:1, label:"Nunca",          hint:"Isso não acontece na minha experiência"},
+  {val:2, label:"Raramente",      hint:"Acontece apenas em situações muito específicas"},
+  {val:3, label:"Às vezes",       hint:"Acontece, mas sem regularidade"},
+  {val:4, label:"Frequentemente", hint:"Acontece na maioria das situações"},
+  {val:5, label:"Sempre",         hint:"Acontece de forma consistente e esperada"},
+];
+
+let sessCode = "", curQ = 0, answers = [], respId = "", sessOpen = true, respNome = "", respGestor = "";
+
+function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('show')); document.getElementById(id).classList.add('show'); }
+function setLoading(msg){ document.getElementById('loading-msg').textContent = msg||'Aguarde...'; show('scr-loading'); }
+
+async function enterSession(){
+  const nome = document.getElementById('name-input').value.trim();
+  const gestor = document.getElementById('gestor-input').value;
+  const code = document.getElementById('code-input').value.trim().toUpperCase();
+  if(!nome){ document.getElementById('err-box').style.display='block'; document.getElementById('err-box').textContent='Por favor, digite seu nome completo.'; return; }
+  if(!gestor){ document.getElementById('err-box').style.display='block'; document.getElementById('err-box').textContent='Por favor, selecione seu gestor.'; return; }
+  if(!code){ document.getElementById('err-box').style.display='block'; document.getElementById('err-box').textContent='Por favor, digite o código da sessão.'; return; }
+  document.getElementById('btn-enter').disabled = true;
+  document.getElementById('err-box').style.display = 'none';
+  setLoading('Entrando na sessão...');
+  try {
+    const r = await fetch(`${FB}/sessions/${code}/open.json`);
+    const data = await r.json();
+    if(data === null || data === false){ throw new Error('not found'); }
+    sessCode = code;
+    respId = 'r_' + Date.now() + '_' + Math.random().toString(36).substr(2,6);
+    respNome = nome;
+    respGestor = gestor;
+    document.getElementById('sess-badge').textContent = code;
+    document.getElementById('main-header').style.display = 'block';
+    buildDots();
+    renderQ(0);
+    show('scr-q');
+  } catch(e){
+    show('scr-entry');
+    document.getElementById('err-box').style.display = 'block';
+    document.getElementById('btn-enter').disabled = false;
+  }
+}
+
+function buildDots(){
+  const d = document.getElementById('dots');
+  d.innerHTML = '';
+  QUESTIONS.forEach((_,i)=>{ const el=document.createElement('div'); el.className='dot'; el.id='dot'+i; d.appendChild(el); });
+}
+
+function updateDots(q){
+  QUESTIONS.forEach((_,i)=>{
+    const el=document.getElementById('dot'+i);
+    el.className='dot'+(i<q?' done':i===q?' active':'');
+  });
+}
+
+function renderQ(qi){
+  curQ = qi;
+  updateDots(qi);
+  const q = QUESTIONS[qi];
+  document.getElementById('q-meta').textContent = `Pergunta ${qi+1} de 11 · ${q.block}`;
+  document.getElementById('q-text').textContent = q.text;
+  const prev = answers[qi];
+  const opts = document.getElementById('options');
+  opts.innerHTML = '';
+  SCALE.forEach(s=>{
+    const sel = prev === s.val;
+    const div = document.createElement('div');
+    div.className = 'opt' + (sel?' sel':'');
+    div.onclick = ()=>selectOpt(qi, s.val);
+    div.innerHTML = `<div class="opt-num">${s.val}</div>
+      <div class="opt-body">
+        <div class="opt-label">${s.label}</div>
+        <div class="opt-hint">${s.hint}</div>
+      </div>`;
+    opts.appendChild(div);
+  });
+  document.getElementById('btn-next').disabled = !prev;
+  document.getElementById('btn-next').textContent = qi < 10 ? 'Próxima →' : 'Enviar respostas ✓';
+}
+
+function selectOpt(qi, val){
+  answers[qi] = val;
+  renderQ(qi);
+}
+
+async function submitAnswer(){
+  if(!answers[curQ]) return;
+  if(curQ < 10){
+    renderQ(curQ+1);
+  } else {
+    setLoading('Enviando suas respostas...');
+    try {
+      const payload = {};
+      answers.forEach((v,i)=>{ payload['q'+(i+1)] = v; });
+      payload.ts = Date.now();
+      payload.nome = respNome;
+      payload.gestor = respGestor;
+      await fetch(`${FB}/sessions/${sessCode}/responses/${respId}.json`, {
+        method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)
+      });
+      document.getElementById('main-header').style.display = 'none';
+      show('scr-done');
+    } catch(e){
+      setLoading('Erro ao enviar. Tente novamente.');
+      setTimeout(()=>{ show('scr-q'); renderQ(curQ); }, 2000);
+    }
+  }
+}
+</script>
+</body>
+</html>
